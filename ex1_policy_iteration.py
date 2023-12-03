@@ -35,7 +35,6 @@ class PolicyIteration:
         :param theta: stop evaluation if delta < theta
         :return:
         """
-
         # P_pi[s', s] = P(s' | s) when acting according to self.policy
         P_pi = np.sum(self.P * self.policy, axis=-1)
 
@@ -44,7 +43,14 @@ class PolicyIteration:
 
         v = np.zeros(self.num_states)
         # TODO: implement iterative policy evaluation
+        while True:
+            v_old = v.copy()
+            v = r_pi + gamma*(P_pi @ v_old)
 
+
+            delta = np.linalg.norm(v - v_old, np.inf)
+            if delta < theta:
+                break
 
         return v
 
@@ -59,7 +65,10 @@ class PolicyIteration:
 
         # TODO: convert v function to Q function
         # Hint: You'll need the MDP dynamics stored in self.P and self.r
-        Q = ...
+        Q = 0
+        for k in range(len(v)):
+            Q += self.P[k]*v[k] 
+        Q = self.r + gamma*Q 
 
         assert Q.shape == (self.num_states, self.num_actions)
         return Q
@@ -80,7 +89,9 @@ class PolicyIteration:
             Q = self.compute_Q_from_v(v, gamma)
 
             # TODO: Improve policy (i.e., create a new one) by acting greedily w.r.t. Q
-            self.policy = ...
+            self.policy = np.zeros((self.num_states, self.num_actions))
+            argmax = np.argmax(Q, axis=1) # always takes the first, what if more are possible?
+            self.policy[np.arange(self.num_states), argmax] = 1.0
 
             if np.array_equal(policy_old, self.policy):
                 break
@@ -120,7 +131,8 @@ class PolicyIteration:
         """
 
         rewards = []
-        for _ in range(num_episodes):
+        for k in range(num_episodes):
+            print('Episode: ', k)
             rewards.append(self.run_episode())
 
         return rewards
