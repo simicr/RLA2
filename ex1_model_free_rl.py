@@ -45,6 +45,19 @@ class ModelFreeAgent:
         # - with probability self.eps return a random action
         # - otherwise find the action that maximizes self.Q
         # - when testing, do not use epsilon-greedy exploration but always return the greedy action
+        q_state = self.Q[state]
+        max_qa = np.argmax(q_state)
+
+        if is_training:
+            pi = np.ones(self.num_actions)
+            pi = (self.eps/self.num_actions)*pi
+            pi[max_qa] = 1 - self.eps + self.eps/self.num_actions
+
+            next_action = np.random.choice(self.num_actions, p=pi)
+            return next_action
+        
+        return max_qa
+
 
 
     def train_step(self, state, action, reward, next_state, next_action, done):
@@ -62,17 +75,27 @@ class ModelFreeAgent:
         if self.algorithm == RLAlgorithm.SARSA:
             # TODO: Implement the SARSA update.
             # - Q(s, a) = alpha * (reward + gamma * Q(s', a') - Q(s, a))
-            raise NotImplementedError(f'{self.algorithm.name} not implemented')
+            if done:
+                self.Q[next_state, :] = 0
+            self.Q[state, action] += alpha*(reward + gamma*self.Q[next_state, next_action] - self.Q[state, action])
         elif self.algorithm == RLAlgorithm.Q_LEARNING:
             # TODO: Implement the Q-Learning update.
             # - Q(s, a) = alpha * (reward + gamma * max_a' Q(s', a') - Q(s, a))
             # - where the max is taken over all possible actions
-            raise NotImplementedError(f'{self.algorithm.name} not implemented')
+            if done:
+                self.Q[next_state, :] = 0
+            self.Q[state, action] += alpha*(reward + gamma*np.max(self.Q[next_state]) - self.Q[state, action])
         elif self.algorithm == RLAlgorithm.EXPECTED_SARSA:
             # TODO: Implement the Expected SARSA update.
             # - Q(s, a) = alpha * (reward + gamma * E[Q(s', a')] - Q(s, a))
             # - where the expectation E[Q(s', a')] is taken wrt. actions a' of the policy (s' is given by next_state)
-            raise NotImplementedError(f'{self.algorithm.name} not implemented')
+            if done:
+                self.Q[next_state, :] = 0
+            pi = np.ones(self.num_actions)
+            pi = (self.eps/self.num_actions)*pi
+            pi[np.argmax(self.Q[next_state])] = 1 - self.eps + self.eps/self.num_actions
+            expected = np.sum(pi*self.Q[next_state]) 
+            self.Q[state, action] += alpha*(reward + gamma*expected - self.Q[state, action])
 
     def run_episode(self, training, render=False):
         """
@@ -159,10 +182,13 @@ def train_test_agent(algorithm, gamma, alpha, eps, eps_decay,
 
 if __name__ == '__main__':
     eps = 1
+    hyper_par = {(0.95, RLAlgorithm.SARSA):(0.25, 0.999), (0.95, RLAlgorithm.Q_LEARNING):(0.2, 0.999), (0.95, RLAlgorithm.EXPECTED_SARSA):(0.22, 0.999)
+                    , (1, RLAlgorithm.SARSA):(0.2, 0.999), (1, RLAlgorithm.Q_LEARNING):(0.15 ,0.995), (1, RLAlgorithm.EXPECTED_SARSA):(0.12, 0.999)}
+    # QL gamma 1 is a problem, EXS gamma 1 only one difference. others have ussually a good result.
     for gamma in [0.95, 1]:
-        for algo in [RLAlgorithm.SARSA, RLAlgorithm.Q_LEARNING, RLAlgorithm.EXPECTED_SARSA]:
+        for algo in [RLAlgorithm.EXPECTED_SARSA]:
             # TODO: For each algorithm independently, set good values for alpha and eps_decay
-            alpha, eps_decay = None, None
+            alpha, eps_decay = hyper_par[(gamma, algo)]
 
             train_test_agent(algorithm=algo, gamma=gamma, alpha=alpha, eps=eps, eps_decay=eps_decay,
                              num_train_episodes=10_000, num_test_episodes=5_000,

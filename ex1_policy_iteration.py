@@ -43,6 +43,7 @@ class PolicyIteration:
 
         v = np.zeros(self.num_states)
         # TODO: implement iterative policy evaluation
+        P_pi = np.transpose(P_pi)
         while True:
             v_old = v.copy()
             v = r_pi + gamma*(P_pi @ v_old)
@@ -66,8 +67,8 @@ class PolicyIteration:
         # TODO: convert v function to Q function
         # Hint: You'll need the MDP dynamics stored in self.P and self.r
         Q = 0
-        for k in range(len(v)):
-            Q += self.P[k]*v[k] 
+        for states in range(len(v)):
+            Q += self.P[states]*v[states] # Could make it 1-liner
         Q = self.r + gamma*Q 
 
         assert Q.shape == (self.num_states, self.num_actions)
@@ -90,8 +91,8 @@ class PolicyIteration:
 
             # TODO: Improve policy (i.e., create a new one) by acting greedily w.r.t. Q
             self.policy = np.zeros((self.num_states, self.num_actions))
-            argmax = np.argmax(Q, axis=1) # always takes the first, what if more are possible?
-            self.policy[np.arange(self.num_states), argmax] = 1.0
+            greedy_action = np.argmax(Q, axis=-1)
+            self.policy[np.arange(self.num_states), greedy_action] = 1.0
 
             if np.array_equal(policy_old, self.policy):
                 break
