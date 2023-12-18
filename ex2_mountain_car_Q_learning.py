@@ -11,7 +11,7 @@ def update_metrics(metrics, episode):
     for k, v in episode.items():
         metrics[k].append(v)
 
-def print_metrics(it, metrics, is_training, window=50):
+def print_metrics(it, metrics, is_training, window=1):
     reward_mean = np.mean(metrics['reward'][-window:])
     loss_mean = np.mean(metrics['loss'][-window:])
     mode = "train" if is_training else "test"
@@ -45,9 +45,12 @@ class QLearningMountainCarAgent:
             )
         elif model_type == ModelType.NEURAL_NET:
             # TODO: Implement a neural network with one hidden layer which consists of `self.num_hidden` neurons.
-            self.num_hidden = None
-            raise NotImplementedError('NeuralNet not implemented')
-
+            self.num_hidden = 32
+            self.Q_model = torch.nn.Sequential(
+            torch.nn.Linear(self.state_dimensions, self.num_hidden),
+            torch.nn.Tanh(),  
+            torch.nn.Linear(self.num_hidden, self.num_actions)
+        )
         self.optimizer = torch.optim.Adam(self.Q_model.parameters(), lr=self.alpha)
         self.criterion = torch.nn.MSELoss()
 
@@ -68,6 +71,17 @@ class QLearningMountainCarAgent:
         # - During the testing phase, we don't need to compute the gradient!
         #   (Hint: use torch.no_grad()). The policy should return torch tensors.
         # - Also, during testing, pick actions deterministically.
+        if is_training: 
+            if np.random.rand() < self.eps:
+                action = torch.tensor(np.random.choice(self.num_actions)).view(1, 1)
+            else: 
+                q_s = self.Q_model(convert(state))
+                action = torch.argmax(q_s).view(1, 1)
+        else:
+            with torch.no_grad():
+                q_s = self.Q_model(convert(state))
+                action = torch.argmax(q_s).view(1, 1)
+        return action
 
     def compute_loss(self, state, action, reward, next_state, next_action, done):
         """
@@ -93,7 +107,14 @@ class QLearningMountainCarAgent:
         # the effect of backpropagating through Q(s, a) and Q(s', a') at once!
 
         # TODO: Return the loss computed using self.criterion.
+        Q_sa = self.Q_model(state).gather(1, action)
+        with torch.no_grad():
+            Q_ns_na = self.Q_model(next_state).gather(1, next_action)    
+        Q_ns_na.detach_()
 
+        y = reward + (1-done)*self.gamma * Q_ns_na
+        return self.criterion(Q_sa, y)
+    
     def train_step(self, state, action, reward, next_state, next_action, done):
         """
         Perform an optimization step on the loss and return the loss value.
@@ -115,7 +136,24 @@ class QLearningMountainCarAgent:
 
         # TODO: Implement a custom reward function
         # Right now, we just return the environment reward.
-        return env_reward
+
+        # Used before
+
+        #reward = convert(15)*state[1]*(state[0] - convert(-0.6))/(convert(0.5) - (0.6))
+        #reward = convert(15)*state[1]*(state[0]+ 0.2)
+
+        # Custom reward for part C if you want to change it just comment it or put it in a if model_type        
+        reward = state[1]
+
+        if (state[0] >= 0.5):
+            reward += convert(10)
+        elif (state[0] < -0.6 and state[1] < 0):
+            reward += convert(0.1)
+        elif (state [0] < -0.6 and state[1] > 0):
+            reward += convert(0.005)
+        
+
+        return reward
 
     def run_episode(self, training, render=False):
         """
@@ -219,14 +257,14 @@ def train_test_agent(model_type, gamma, alpha, eps, eps_decay,
 
 if __name__ == '__main__':
     eps = 1.0
-    gamma = None
-    eps_decay = None
-    alpha = None
-    num_train_episodes = None
-    max_episode_length = None
+    gamma = 0.95
+    eps_decay = 0.99999
+    alpha = 0.1
+    num_train_episodes = 2000
+    max_episode_length = 200
 
     model_type = ModelType.LINEAR # Task b
-    # Task c: model_type = ModelType.NEURAL_NET
+    #model_type = ModelType.NEURAL_NET #Task c 
 
     train_test_agent(model_type=model_type, gamma=gamma, alpha=alpha, eps=eps, eps_decay=eps_decay,
                      num_train_episodes=num_train_episodes, num_test_episodes=100,

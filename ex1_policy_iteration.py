@@ -47,8 +47,6 @@ class PolicyIteration:
         while True:
             v_old = v.copy()
             v = r_pi + gamma*(P_pi @ v_old)
-
-
             delta = np.linalg.norm(v - v_old, np.inf)
             if delta < theta:
                 break
@@ -132,8 +130,7 @@ class PolicyIteration:
         """
 
         rewards = []
-        for k in range(num_episodes):
-            print('Episode: ', k)
+        for _ in range(num_episodes):
             rewards.append(self.run_episode())
 
         return rewards
