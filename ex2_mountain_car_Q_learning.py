@@ -143,15 +143,25 @@ class QLearningMountainCarAgent:
         #reward = convert(15)*state[1]*(state[0]+ 0.2)
 
         # Custom reward for part C if you want to change it just comment it or put it in a if model_type        
-        reward = state[1]
-
-        if (state[0] >= 0.5):
-            reward += convert(10)
-        elif (state[0] < -0.6 and state[1] < 0):
-            reward += convert(0.1)
-        elif (state [0] < -0.6 and state[1] > 0):
-            reward += convert(0.005)
         
+        reward = 0
+        if self.model_type == ModelType.LINEAR:
+            
+            reward = state[1]
+            if (state[0] >= 0.5):
+                reward += convert(10)
+            elif (state[0] < -0.6 and state[1] < 0):
+                reward += convert(-0.1)
+            elif (state [0] < -0.6 and state[1] > 0):
+                reward += convert(0.05)
+        else: 
+            reward = state[1]
+            if (state[0] >= 0.5):
+                reward += convert(10)
+            elif (state[0] < -0.6 and state[1] < 0):
+                reward += convert(-0.1)
+            elif (state [0] < -0.6 and state[1] > 0):
+                reward += convert(0.05)
 
         return reward
 

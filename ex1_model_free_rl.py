@@ -182,13 +182,14 @@ def train_test_agent(algorithm, gamma, alpha, eps, eps_decay,
 
 if __name__ == '__main__':
     eps = 1
-    hyper_par = {(0.95, RLAlgorithm.SARSA):(0.25, 0.995), (0.95, RLAlgorithm.Q_LEARNING):(0.25, 0.995), (0.95, RLAlgorithm.EXPECTED_SARSA):(0.25, 0.995)
-                    , (1, RLAlgorithm.SARSA):(0.2, 0.995), (1, RLAlgorithm.Q_LEARNING):(0.2 ,0.995), (1, RLAlgorithm.EXPECTED_SARSA):(0.2, 0.995)}
+
+    hyper_par = {(0.95, RLAlgorithm.SARSA):(0.1, 0.999), (0.95, RLAlgorithm.Q_LEARNING):(0.2, 0.999), (0.95, RLAlgorithm.EXPECTED_SARSA):(0.2, 0.999)
+                    , (1, RLAlgorithm.SARSA):(0.1, 0.999), (1, RLAlgorithm.Q_LEARNING):(0.05, 0.999), (1, RLAlgorithm.EXPECTED_SARSA):(0.125, 0.999)}
     
-    for gamma in [1]:
-        for algo in [RLAlgorithm.EXPECTED_SARSA]:
+    for gamma in [0.95, 1]:
+        for algo in [RLAlgorithm.SARSA, RLAlgorithm.Q_LEARNING, RLAlgorithm.EXPECTED_SARSA]:
             # TODO: For each algorithm independently, set good values for alpha and eps_decay
             alpha, eps_decay = hyper_par[(gamma, algo)]
             train_test_agent(algorithm=algo, gamma=gamma, alpha=alpha, eps=eps, eps_decay=eps_decay,
                              num_train_episodes=10_000, num_test_episodes=5_000,
-                             max_episode_length=200, savefig=False)
+                             max_episode_length=200, savefig=True)
