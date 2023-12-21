@@ -45,7 +45,7 @@ class QLearningMountainCarAgent:
             )
         elif model_type == ModelType.NEURAL_NET:
             # TODO: Implement a neural network with one hidden layer which consists of `self.num_hidden` neurons.
-            self.num_hidden = 32
+            self.num_hidden = 4
             self.Q_model = torch.nn.Sequential(
             torch.nn.Linear(self.state_dimensions, self.num_hidden),
             torch.nn.Tanh(),  
@@ -72,11 +72,12 @@ class QLearningMountainCarAgent:
         #   (Hint: use torch.no_grad()). The policy should return torch tensors.
         # - Also, during testing, pick actions deterministically.
         if is_training: 
-            if np.random.rand() < self.eps:
-                action = torch.tensor(np.random.choice(self.num_actions)).view(1, 1)
-            else: 
-                q_s = self.Q_model(convert(state))
-                action = torch.argmax(q_s).view(1, 1)
+            prob = np.ones(self.num_actions)*(self.eps/self.num_actions)
+            q_s = self.Q_model(convert(state))
+            greedy_action = torch.argmax(q_s).view(1, 1)
+            prob[greedy_action] = 1-self.eps*(1.0 - 1.0/self.num_actions)
+            action = torch.tensor(np.random.choice(self.num_actions, p=prob)).view(1, 1) 
+                
         else:
             with torch.no_grad():
                 q_s = self.Q_model(convert(state))
@@ -137,33 +138,10 @@ class QLearningMountainCarAgent:
         # TODO: Implement a custom reward function
         # Right now, we just return the environment reward.
 
-        # Used before
-
-        #reward = convert(15)*state[1]*(state[0] - convert(-0.6))/(convert(0.5) - (0.6))
-        #reward = convert(15)*state[1]*(state[0]+ 0.2)
-
-        # Custom reward for part C if you want to change it just comment it or put it in a if model_type        
+        if (state[0] >= 0.5):
+            return convert(400)
         
-        reward = 0
-        if self.model_type == ModelType.LINEAR:
-            
-            reward = state[1]
-            if (state[0] >= 0.5):
-                reward += convert(10)
-            elif (state[0] < -0.6 and state[1] < 0):
-                reward += convert(-0.1)
-            elif (state [0] < -0.6 and state[1] > 0):
-                reward += convert(0.05)
-        else: 
-            reward = state[1]
-            if (state[0] >= 0.5):
-                reward += convert(10)
-            elif (state[0] < -0.6 and state[1] < 0):
-                reward += convert(-0.1)
-            elif (state [0] < -0.6 and state[1] > 0):
-                reward += convert(0.05)
-
-        return reward
+        return convert(15)*abs(state[1]) + convert(2.5)*abs(state[0] - 0.5)
 
     def run_episode(self, training, render=False):
         """
@@ -268,13 +246,13 @@ def train_test_agent(model_type, gamma, alpha, eps, eps_decay,
 if __name__ == '__main__':
     eps = 1.0
     gamma = 0.95
-    eps_decay = 0.99999
-    alpha = 0.1
-    num_train_episodes = 2000
-    max_episode_length = 200
+    eps_decay = 0.999
+    alpha = 0.01  
+    num_train_episodes = 2000 
+    max_episode_length = 450 
 
-    model_type = ModelType.LINEAR # Task b
-    #model_type = ModelType.NEURAL_NET #Task c 
+    #model_type = ModelType.LINEAR # Task b
+    model_type = ModelType.NEURAL_NET #Task c 
 
     train_test_agent(model_type=model_type, gamma=gamma, alpha=alpha, eps=eps, eps_decay=eps_decay,
                      num_train_episodes=num_train_episodes, num_test_episodes=100,
